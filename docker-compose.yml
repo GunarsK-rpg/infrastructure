@@ -33,7 +33,7 @@ services:
     ports:
       - "8100:80"
       - "8543:443"
-      - "9003:8080"  # Traefik dashboard
+      - "127.0.0.1:9003:8080"  # Traefik dashboard (localhost only)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${TRAEFIK_CERT_DIR}:/certs:ro
@@ -132,8 +132,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "9010:9000"
-      - "9011:9001"
+      - "127.0.0.1:9010:9000"
+      - "127.0.0.1:9011:9001"
     volumes:
       - minio_data:/data
     networks:

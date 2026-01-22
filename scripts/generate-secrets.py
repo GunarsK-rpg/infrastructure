@@ -4,6 +4,7 @@ Generate secure passwords and secrets for local development environment.
 This script creates a .env file with randomly generated credentials.
 """
 
+import os
 import secrets
 import string
 import sys
@@ -81,12 +82,19 @@ def generate_env_file(infrastructure_dir, force=False):
         'your-jwt-secret-change-in-production': secrets_map['JWT_SECRET'],
     }
 
+    # Validate all placeholders exist before replacement
+    missing = [k for k in replacements if k not in env_content]
+    if missing:
+        print(f"Error: Missing placeholders in .env.example: {', '.join(missing)}")
+        sys.exit(1)
+
     for old_value, new_value in replacements.items():
         env_content = env_content.replace(old_value, new_value)
 
     # Write the new .env file
     with open(env_path, 'w') as f:
         f.write(env_content)
+    os.chmod(env_path, 0o600)
 
     # Create a backup file with just the secrets for reference
     secrets_backup_path = infrastructure_dir / '.secrets.txt'
@@ -96,6 +104,7 @@ def generate_env_file(infrastructure_dir, force=False):
         f.write("# DO NOT COMMIT THIS FILE TO VERSION CONTROL!\n\n")
         for key, value in secrets_map.items():
             f.write(f"{key}={value}\n")
+    os.chmod(secrets_backup_path, 0o600)
 
     print(f"\n[SUCCESS] Generated {env_path}")
     print(f"[SUCCESS] Secrets backup saved to {secrets_backup_path}")

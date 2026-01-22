@@ -1,5 +1,7 @@
 version: '3'
 
+dotenv: ['.env']
+
 tasks:
   # Top-level tasks
   init:
@@ -21,7 +23,7 @@ tasks:
   services:up:
     desc: Start all services with docker compose
     cmds:
-      - docker compose up -d
+      - docker compose up -d --wait
 
   services:down:
     desc: Stop all services
@@ -45,10 +47,11 @@ tasks:
       - docker compose up -d
 
   services:clean:
-    desc: Stop services and remove volumes
+    desc: Stop services and DELETE ALL DATA (removes volumes)
     cmds:
+      - cmd: echo "WARNING - This will permanently delete all data in volumes!"
       - docker compose down -v
-      - echo "Services cleaned (volumes removed)"
+      - cmd: echo "Services stopped and volumes removed."
 
   services:logs:
     desc: View logs from all services
@@ -60,7 +63,7 @@ tasks:
     cmds:
       # - task: public-api:ci  # TODO: Enable when public-api repo exists
       - task: public-web:ci
-      - task: database:ci
+      - task: db:ci
       - echo "All service CI checks passed!"
 
   # Individual service operations - Public API
@@ -115,6 +118,9 @@ tasks:
   public-web:ci:
     desc: Run CI checks for public-web repo
     dir: ../public-web
+    preconditions:
+      - sh: test -d ../public-web
+        msg: "public-web repo not found at ../public-web - clone it first"
     cmds:
       - task ci:all
 
@@ -137,11 +143,14 @@ tasks:
   db:console:
     desc: Connect to database with psql
     cmds:
-      - docker compose exec postgres psql -U ${FLYWAY_USER} -d ${POSTGRES_DB}
+      - docker compose exec postgres psql -U {{.FLYWAY_USER}} -d {{.POSTGRES_DB}}
 
-  database:ci:
+  db:ci:
     desc: Run CI checks for database repo
     dir: ../database
+    preconditions:
+      - sh: test -d ../database
+        msg: "database repo not found at ../database - clone it first"
     cmds:
       - task ci:all
 
@@ -164,7 +173,7 @@ tasks:
     cmds:
       - cmd: python -m yamllint .
         platforms: [windows]
-      - cmd: yamllint .
+      - cmd: python3 -m yamllint .
         platforms: [linux, darwin]
 
   ci:lint-markdown:
@@ -173,7 +182,10 @@ tasks:
       - npx markdownlint-cli2
 
   ci:install-tools:
-    desc: Install CI/CD tools (requires pip and npm)
+    desc: Install CI/CD tools locally (requires pip and npm)
     cmds:
-      - python -m pip install yamllint
-      - npm install -g markdownlint-cli2
+      - cmd: python -m pip install --user yamllint==1.35.1
+        platforms: [windows]
+      - cmd: python3 -m pip install --user yamllint==1.35.1
+        platforms: [linux, darwin]
+      - npm install markdownlint-cli2@0.17.2
