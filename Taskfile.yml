@@ -1,0 +1,179 @@
+version: '3'
+
+tasks:
+  # Top-level tasks
+  init:
+    desc: Initialize environment (generate secrets and start services)
+    cmds:
+      - task: secrets:generate
+      - task: services:up
+
+  # Secrets management
+  secrets:generate:
+    desc: Generate secure passwords and secrets for .env file
+    cmds:
+      - cmd: python scripts/generate-secrets.py {{.CLI_ARGS}}
+        platforms: [windows]
+      - cmd: python3 scripts/generate-secrets.py {{.CLI_ARGS}}
+        platforms: [linux, darwin]
+
+  # Services stack operations (docker-compose)
+  services:up:
+    desc: Start all services with docker compose
+    cmds:
+      - docker compose up -d
+
+  services:down:
+    desc: Stop all services
+    cmds:
+      - docker compose down
+
+  services:restart:
+    desc: Restart all services
+    cmds:
+      - docker compose restart
+
+  services:ps:
+    desc: List running services
+    cmds:
+      - docker compose ps
+
+  services:build:
+    desc: Build all services
+    cmds:
+      - docker compose build --progress=plain
+      - docker compose up -d
+
+  services:clean:
+    desc: Stop services and remove volumes
+    cmds:
+      - docker compose down -v
+      - echo "Services cleaned (volumes removed)"
+
+  services:logs:
+    desc: View logs from all services
+    cmds:
+      - docker compose logs -f
+
+  services:ci:
+    desc: Run CI checks for all service repos
+    cmds:
+      # - task: public-api:ci  # TODO: Enable when public-api repo exists
+      - task: public-web:ci
+      - task: database:ci
+      - echo "All service CI checks passed!"
+
+  # Individual service operations - Public API
+  # TODO: Uncomment when public-api repo exists
+  # public-api:logs:
+  #   desc: View public API logs
+  #   cmds:
+  #     - docker compose logs -f public-api
+
+  # public-api:stop:
+  #   desc: Stop public API
+  #   cmds:
+  #     - docker compose stop public-api
+
+  # public-api:restart:
+  #   desc: Restart public API
+  #   cmds:
+  #     - docker compose restart public-api
+
+  # public-api:rebuild:
+  #   desc: Rebuild and restart public API
+  #   cmds:
+  #     - docker compose up -d --build public-api
+
+  # public-api:ci:
+  #   desc: Run CI checks for public-api repo
+  #   dir: ../public-api
+  #   cmds:
+  #     - task ci:all
+
+  # Individual service operations - Public Web
+  public-web:logs:
+    desc: View public web logs
+    cmds:
+      - docker compose logs -f public-web
+
+  public-web:stop:
+    desc: Stop public web
+    cmds:
+      - docker compose stop public-web
+
+  public-web:restart:
+    desc: Restart public web
+    cmds:
+      - docker compose restart public-web
+
+  public-web:rebuild:
+    desc: Rebuild and restart public web
+    cmds:
+      - docker compose up -d --build public-web
+
+  public-web:ci:
+    desc: Run CI checks for public-web repo
+    dir: ../public-web
+    cmds:
+      - task ci:all
+
+  # Database operations
+  db:logs:
+    desc: View database logs
+    cmds:
+      - docker compose logs -f postgres
+
+  db:stop:
+    desc: Stop database
+    cmds:
+      - docker compose stop postgres
+
+  db:restart:
+    desc: Restart database
+    cmds:
+      - docker compose restart postgres
+
+  db:console:
+    desc: Connect to database with psql
+    cmds:
+      - docker compose exec postgres psql -U ${FLYWAY_USER} -d ${POSTGRES_DB}
+
+  database:ci:
+    desc: Run CI checks for database repo
+    dir: ../database
+    cmds:
+      - task ci:all
+
+  # CI/CD tasks (infrastructure repo only)
+  ci:all:
+    desc: Run all CI checks for infrastructure repo
+    cmds:
+      - task: ci:validate
+      - task: ci:lint-yaml
+      - task: ci:lint-markdown
+      - echo "Infrastructure CI checks passed!"
+
+  ci:validate:
+    desc: Validate docker compose configuration syntax
+    cmds:
+      - docker compose config --quiet --no-interpolate
+
+  ci:lint-yaml:
+    desc: Lint YAML files
+    cmds:
+      - cmd: python -m yamllint .
+        platforms: [windows]
+      - cmd: yamllint .
+        platforms: [linux, darwin]
+
+  ci:lint-markdown:
+    desc: Lint Markdown files
+    cmds:
+      - npx markdownlint-cli2
+
+  ci:install-tools:
+    desc: Install CI/CD tools (requires pip and npm)
+    cmds:
+      - python -m pip install yamllint
+      - npm install -g markdownlint-cli2

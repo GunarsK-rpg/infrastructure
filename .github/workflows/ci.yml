@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Validate YAML files
+  yaml-lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: YAML Lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: .
+          config_file: .yamllint.yml
+          strict: false
+
+  # Job 2: Validate Docker Compose
+  docker-compose-validate:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml syntax
+        run: docker compose config --quiet --no-interpolate
+
+  # Job 3: Markdown lint
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint Markdown files
+        uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: '**/*.md'
+
+  # Job 4: Security - Check for secrets
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+  # Summary job - require all to pass
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [yaml-lint, docker-compose-validate, markdown-lint, secret-scan]
+    if: always()
+    steps:
+      - name: Check all jobs status
+        run: |
+          FAILURE="${{ contains(needs.*.result, 'failure') }}"
+          CANCELLED="${{ contains(needs.*.result, 'cancelled') }}"
+          if [[ "$FAILURE" == "true" || "$CANCELLED" == "true" ]]; then
+            echo "One or more CI jobs failed or were cancelled"
+            exit 1
+          fi
+          echo "All CI jobs passed successfully!"
