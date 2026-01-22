@@ -1,0 +1,311 @@
+name: rpg
+
+services:
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v3.3.6
+    container_name: rpg-traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    command:
+      # API
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      # Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=rpg_network"
+      - "--providers.docker.constraints=Label(`traefik.constraint-rpg`,`true`)"
+      - "--providers.file.directory=/config"
+      - "--providers.file.watch=true"
+      # Entrypoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # HTTP to HTTPS redirect
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+    ports:
+      - "8100:80"
+      - "8543:443"
+      - "127.0.0.1:9003:8080"  # Traefik dashboard (localhost only)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${TRAEFIK_CERT_DIR}:/certs:ro
+      - ./docker/traefik/dynamic.yml:/config/dynamic.yml:ro
+    networks:
+      - network
+    depends_on:
+      - public-web
+      # - public-api  # TODO: Enable when public-api repo exists
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  # Database (PostgreSQL on port 5433)
+  postgres:
+    image: ghcr.io/gunarsk-portfolio/postgres-image:latest
+    container_name: rpg-postgres
+    restart: unless-stopped
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements,pg_cron"
+      - "-c"
+      - "cron.database_name=cosmere_rpg"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_SUPERUSER}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      FLYWAY_USER: ${FLYWAY_USER}
+      FLYWAY_PASSWORD: ${FLYWAY_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../database/docker/postgres/init-users.sh:/docker-entrypoint-initdb.d/01-init-users.sh:ro
+      - ../database/docker/postgres/init-users.sql.template:/docker-entrypoint-initdb.d/init-users.sql.template:ro
+    networks:
+      - network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Redis Cache
+  redis:
+    image: redis:8-alpine
+    container_name: rpg-redis
+    restart: unless-stopped
+    user: "999:999"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: >
+      sh -c "redis-server /usr/local/etc/redis/redis.conf --requirepass '${REDIS_PASSWORD}'"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:RELEASE.2025-01-20T14-49-07Z
+    container_name: rpg-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "127.0.0.1:9010:9000"
+      - "127.0.0.1:9011:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # MinIO Bucket Setup
+  minio-setup:
+    image: minio/mc:RELEASE.2025-01-17T23-25-50Z
+    container_name: rpg-minio-setup
+    restart: "no"
+    volumes:
+      - ./docker/minio/files-policy.json:/policies/files-policy.json:ro
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio ${S3_ENDPOINT} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      /usr/bin/mc mb --ignore-existing myminio/character-portraits;
+      /usr/bin/mc mb --ignore-existing myminio/documents;
+      /usr/bin/mc admin policy create myminio files-policy /policies/files-policy.json || true;
+      /usr/bin/mc admin user add myminio ${S3_ACCESS_KEY} ${S3_SECRET_KEY} || true;
+      /usr/bin/mc admin policy attach myminio files-policy --user ${S3_ACCESS_KEY} || true;
+      exit 0;
+      "
+    networks:
+      - network
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  # Database Migrations (Flyway)
+  flyway:
+    image: flyway/flyway:11
+    container_name: rpg-flyway
+    restart: "no"
+    command: migrate
+    volumes:
+      - ../database/migrations:/flyway/sql
+      - ../database/seeds:/flyway/seeds
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${POSTGRES_DB}
+      - FLYWAY_USER=${FLYWAY_USER}
+      - FLYWAY_PASSWORD=${FLYWAY_PASSWORD}
+      - FLYWAY_BASELINE_ON_MIGRATE=${FLYWAY_BASELINE_ON_MIGRATE}
+      - FLYWAY_LOCATIONS=${FLYWAY_LOCATIONS}
+    networks:
+      - network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Public API (Go backend)
+  # TODO: Uncomment when public-api repo exists
+  # public-api:
+  #   build:
+  #     context: ../public-api
+  #     dockerfile: Dockerfile
+  #   container_name: rpg-public-api
+  #   restart: unless-stopped
+  #   environment:
+  #     - PORT=${PUBLIC_API_PORT}
+  #     - DB_HOST=${DB_HOST}
+  #     - DB_PORT=${DB_PORT}
+  #     - DB_USER=${DB_USER}
+  #     - DB_PASSWORD=${DB_PASSWORD}
+  #     - DB_NAME=${POSTGRES_DB}
+  #     - REDIS_HOST=${REDIS_HOST}
+  #     - REDIS_PORT=${REDIS_PORT}
+  #     - REDIS_PASSWORD=${REDIS_PASSWORD}
+  #     - JWT_SECRET=${JWT_SECRET}
+  #     - LOG_LEVEL=${LOG_LEVEL}
+  #     - LOG_FORMAT=${LOG_FORMAT}
+  #     - LOG_SOURCE=${LOG_SOURCE}
+  #     - ENVIRONMENT=${ENVIRONMENT}
+  #     - GIN_MODE=release
+  #     - ALLOWED_ORIGINS=${ALLOWED_ORIGINS_PUBLIC}
+  #   ports:
+  #     - "8182:8182"
+  #   networks:
+  #     - network
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     flyway:
+  #       condition: service_completed_successfully
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8182/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
+  #       reservations:
+  #         memory: 128M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.constraint-rpg=true"
+  #     # Rate limiting middleware
+  #     - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.average=60"
+  #     - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.period=1m"
+  #     - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.burst=100"
+  #     # HTTP router
+  #     - "traefik.http.routers.rpg-public-api.rule=PathPrefix(`/api/`)"
+  #     - "traefik.http.routers.rpg-public-api.entrypoints=web"
+  #     - "traefik.http.routers.rpg-public-api.middlewares=rpg-public-ratelimit"
+  #     - "traefik.http.routers.rpg-public-api.priority=100"
+  #     - "traefik.http.routers.rpg-public-api.service=rpg-public-api"
+  #     # HTTPS router
+  #     - "traefik.http.routers.rpg-public-api-secure.rule=PathPrefix(`/api/`)"
+  #     - "traefik.http.routers.rpg-public-api-secure.entrypoints=websecure"
+  #     - "traefik.http.routers.rpg-public-api-secure.middlewares=rpg-public-ratelimit"
+  #     - "traefik.http.routers.rpg-public-api-secure.priority=100"
+  #     - "traefik.http.routers.rpg-public-api-secure.tls=true"
+  #     - "traefik.http.routers.rpg-public-api-secure.service=rpg-public-api"
+  #     - "traefik.http.services.rpg-public-api.loadbalancer.server.port=8182"
+
+  # Public Web (Vue frontend)
+  public-web:
+    build:
+      context: ../public-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_PUBLIC_API_URL}
+    container_name: rpg-public-web
+    restart: unless-stopped
+    ports:
+      - "8180:8080"
+    networks:
+      - network
+    # depends_on:
+    #   - public-api  # TODO: Enable when public-api repo exists
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.constraint-rpg=true"
+      # HTTP router
+      - "traefik.http.routers.rpg-public-web.rule=PathPrefix(`/`) && !PathPrefix(`/api/`)"
+      - "traefik.http.routers.rpg-public-web.entrypoints=web"
+      - "traefik.http.routers.rpg-public-web.priority=1"
+      # HTTPS router
+      - "traefik.http.routers.rpg-public-web-secure.rule=PathPrefix(`/`) && !PathPrefix(`/api/`)"
+      - "traefik.http.routers.rpg-public-web-secure.entrypoints=websecure"
+      - "traefik.http.routers.rpg-public-web-secure.priority=1"
+      - "traefik.http.routers.rpg-public-web-secure.tls=true"
+      - "traefik.http.routers.rpg-public-web-secure.service=rpg-public-web"
+      - "traefik.http.services.rpg-public-web.loadbalancer.server.port=8080"
+
+networks:
+  network:
+    name: rpg_network
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
