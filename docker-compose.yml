@@ -50,7 +50,7 @@ services:
         reservations:
           memory: 64M
 
-  # Database (PostgreSQL on port 5433)
+  # Database (PostgreSQL on port 5435)
   postgres:
     image: ghcr.io/gunarsk-portfolio/postgres-image:latest
     container_name: rpg-postgres
@@ -62,6 +62,7 @@ services:
       - "-c"
       - "cron.database_name=cosmere_rpg"
     environment:
+      # Must match cron.database_name in command above
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_SUPERUSER}
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
@@ -183,7 +184,7 @@ services:
       - ../database/migrations:/flyway/sql
       - ../database/seeds:/flyway/seeds
     environment:
-      - FLYWAY_URL=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${POSTGRES_DB}
+      - FLYWAY_URL=jdbc:postgresql://postgres:${DB_PORT}/${POSTGRES_DB}
       - FLYWAY_USER=${FLYWAY_USER}
       - FLYWAY_PASSWORD=${FLYWAY_PASSWORD}
       - FLYWAY_BASELINE_ON_MIGRATE=${FLYWAY_BASELINE_ON_MIGRATE}
