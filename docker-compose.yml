@@ -183,6 +183,7 @@ services:
     volumes:
       - ../database/migrations:/flyway/sql
       - ../database/seeds:/flyway/seeds
+      - ../database-seeds:/flyway/private-seeds
     environment:
       - FLYWAY_URL=jdbc:postgresql://postgres:${DB_PORT}/${POSTGRES_DB}
       - FLYWAY_USER=${FLYWAY_USER}
