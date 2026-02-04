@@ -91,7 +91,7 @@ tasks:
     desc: Run CI checks for public-api repo
     dir: ../public-api
     preconditions:
-      - sh: test -d ../public-api
+      - sh: test -f Taskfile.yml
         msg: "public-api repo not found at ../public-api - clone it first"
     cmds:
       - task ci:all
@@ -121,7 +121,7 @@ tasks:
     desc: Run CI checks for public-web repo
     dir: ../public-web
     preconditions:
-      - sh: test -d ../public-web
+      - sh: test -f Taskfile.yml
         msg: "public-web repo not found at ../public-web - clone it first"
     cmds:
       - task ci:all
@@ -151,7 +151,7 @@ tasks:
     desc: Run CI checks for database repo
     dir: ../database
     preconditions:
-      - sh: test -d ../database
+      - sh: test -f Taskfile.yml
         msg: "database repo not found at ../database - clone it first"
     cmds:
       - task ci:all
