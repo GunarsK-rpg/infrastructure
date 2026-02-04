@@ -203,6 +203,10 @@ services:
       dockerfile: Dockerfile
     container_name: rpg-public-api
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - PORT=${PUBLIC_API_PORT}
       - DB_HOST=${DB_HOST}
@@ -220,7 +224,7 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS_PUBLIC}
       - MAX_BODY_SIZE=${MAX_BODY_SIZE}
     ports:
-      - "8182:8182"
+      - "127.0.0.1:8182:8182"
     networks:
       - network
     depends_on:
@@ -277,7 +281,8 @@ services:
     networks:
       - network
     depends_on:
-      - public-api
+      public-api:
+        condition: service_healthy
     deploy:
       resources:
         limits:

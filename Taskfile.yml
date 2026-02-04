@@ -90,6 +90,9 @@ tasks:
   public-api:ci:
     desc: Run CI checks for public-api repo
     dir: ../public-api
+    preconditions:
+      - sh: test -d ../public-api
+        msg: "public-api repo not found at ../public-api - clone it first"
     cmds:
       - task ci:all
 
