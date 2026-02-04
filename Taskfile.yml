@@ -61,38 +61,40 @@ tasks:
   services:ci:
     desc: Run CI checks for all service repos
     cmds:
-      # - task: public-api:ci  # TODO: Enable when public-api repo exists
+      - task: public-api:ci
       - task: public-web:ci
       - task: db:ci
       - echo "All service CI checks passed!"
 
   # Individual service operations - Public API
-  # TODO: Uncomment when public-api repo exists
-  # public-api:logs:
-  #   desc: View public API logs
-  #   cmds:
-  #     - docker compose logs -f public-api
+  public-api:logs:
+    desc: View public API logs
+    cmds:
+      - docker compose logs -f public-api
 
-  # public-api:stop:
-  #   desc: Stop public API
-  #   cmds:
-  #     - docker compose stop public-api
+  public-api:stop:
+    desc: Stop public API
+    cmds:
+      - docker compose stop public-api
 
-  # public-api:restart:
-  #   desc: Restart public API
-  #   cmds:
-  #     - docker compose restart public-api
+  public-api:restart:
+    desc: Restart public API
+    cmds:
+      - docker compose restart public-api
 
-  # public-api:rebuild:
-  #   desc: Rebuild and restart public API
-  #   cmds:
-  #     - docker compose up -d --build public-api
+  public-api:rebuild:
+    desc: Rebuild and restart public API
+    cmds:
+      - docker compose up -d --build public-api
 
-  # public-api:ci:
-  #   desc: Run CI checks for public-api repo
-  #   dir: ../public-api
-  #   cmds:
-  #     - task ci:all
+  public-api:ci:
+    desc: Run CI checks for public-api repo
+    dir: ../public-api
+    preconditions:
+      - sh: test -f Taskfile.yml
+        msg: "public-api repo not found at ../public-api - clone it first"
+    cmds:
+      - task ci:all
 
   # Individual service operations - Public Web
   public-web:logs:
@@ -119,7 +121,7 @@ tasks:
     desc: Run CI checks for public-web repo
     dir: ../public-web
     preconditions:
-      - sh: test -d ../public-web
+      - sh: test -f Taskfile.yml
         msg: "public-web repo not found at ../public-web - clone it first"
     cmds:
       - task ci:all
@@ -149,7 +151,7 @@ tasks:
     desc: Run CI checks for database repo
     dir: ../database
     preconditions:
-      - sh: test -d ../database
+      - sh: test -f Taskfile.yml
         msg: "database repo not found at ../database - clone it first"
     cmds:
       - task ci:all

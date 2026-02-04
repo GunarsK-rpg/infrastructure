@@ -42,7 +42,7 @@ services:
       - network
     depends_on:
       - public-web
-      # - public-api  # TODO: Enable when public-api repo exists
+      - public-api
     deploy:
       resources:
         limits:
@@ -197,74 +197,74 @@ services:
         condition: service_healthy
 
   # Public API (Go backend)
-  # TODO: Uncomment when public-api repo exists
-  # public-api:
-  #   build:
-  #     context: ../public-api
-  #     dockerfile: Dockerfile
-  #   container_name: rpg-public-api
-  #   restart: unless-stopped
-  #   environment:
-  #     - PORT=${PUBLIC_API_PORT}
-  #     - DB_HOST=${DB_HOST}
-  #     - DB_PORT=${DB_PORT}
-  #     - DB_USER=${DB_USER}
-  #     - DB_PASSWORD=${DB_PASSWORD}
-  #     - DB_NAME=${POSTGRES_DB}
-  #     - REDIS_HOST=${REDIS_HOST}
-  #     - REDIS_PORT=${REDIS_PORT}
-  #     - REDIS_PASSWORD=${REDIS_PASSWORD}
-  #     - JWT_SECRET=${JWT_SECRET}
-  #     - LOG_LEVEL=${LOG_LEVEL}
-  #     - LOG_FORMAT=${LOG_FORMAT}
-  #     - LOG_SOURCE=${LOG_SOURCE}
-  #     - ENVIRONMENT=${ENVIRONMENT}
-  #     - GIN_MODE=release
-  #     - ALLOWED_ORIGINS=${ALLOWED_ORIGINS_PUBLIC}
-  #   ports:
-  #     - "8182:8182"
-  #   networks:
-  #     - network
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #     flyway:
-  #       condition: service_completed_successfully
-  #   healthcheck:
-  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8182/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 40s
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 256M
-  #       reservations:
-  #         memory: 128M
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.constraint-rpg=true"
-  #     # Rate limiting middleware
-  #     - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.average=60"
-  #     - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.period=1m"
-  #     - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.burst=100"
-  #     # HTTP router
-  #     - "traefik.http.routers.rpg-public-api.rule=PathPrefix(`/api/`)"
-  #     - "traefik.http.routers.rpg-public-api.entrypoints=web"
-  #     - "traefik.http.routers.rpg-public-api.middlewares=rpg-public-ratelimit"
-  #     - "traefik.http.routers.rpg-public-api.priority=100"
-  #     - "traefik.http.routers.rpg-public-api.service=rpg-public-api"
-  #     # HTTPS router
-  #     - "traefik.http.routers.rpg-public-api-secure.rule=PathPrefix(`/api/`)"
-  #     - "traefik.http.routers.rpg-public-api-secure.entrypoints=websecure"
-  #     - "traefik.http.routers.rpg-public-api-secure.middlewares=rpg-public-ratelimit"
-  #     - "traefik.http.routers.rpg-public-api-secure.priority=100"
-  #     - "traefik.http.routers.rpg-public-api-secure.tls=true"
-  #     - "traefik.http.routers.rpg-public-api-secure.service=rpg-public-api"
-  #     - "traefik.http.services.rpg-public-api.loadbalancer.server.port=8182"
+  public-api:
+    build:
+      context: ../public-api
+      dockerfile: Dockerfile
+    container_name: rpg-public-api
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      - PORT=${PUBLIC_API_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_SSL_MODE=${DB_SSL_MODE}
+      - JWT_SECRET=${JWT_SECRET}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - LOG_FORMAT=${LOG_FORMAT}
+      - LOG_SOURCE=${LOG_SOURCE}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - GIN_MODE=${GIN_MODE}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS_PUBLIC}
+      - MAX_BODY_SIZE=${MAX_BODY_SIZE}
+    ports:
+      - "127.0.0.1:8182:8182"
+    networks:
+      - network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8182/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.constraint-rpg=true"
+      # Rate limiting middleware
+      - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.average=60"
+      - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.period=1m"
+      - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.burst=100"
+      # HTTP router
+      - "traefik.http.routers.rpg-public-api.rule=PathPrefix(`/api/`)"
+      - "traefik.http.routers.rpg-public-api.entrypoints=web"
+      - "traefik.http.routers.rpg-public-api.middlewares=rpg-public-ratelimit"
+      - "traefik.http.routers.rpg-public-api.priority=100"
+      - "traefik.http.routers.rpg-public-api.service=rpg-public-api"
+      # HTTPS router
+      - "traefik.http.routers.rpg-public-api-secure.rule=PathPrefix(`/api/`)"
+      - "traefik.http.routers.rpg-public-api-secure.entrypoints=websecure"
+      - "traefik.http.routers.rpg-public-api-secure.middlewares=rpg-public-ratelimit"
+      - "traefik.http.routers.rpg-public-api-secure.priority=100"
+      - "traefik.http.routers.rpg-public-api-secure.tls=true"
+      - "traefik.http.routers.rpg-public-api-secure.service=rpg-public-api"
+      - "traefik.http.services.rpg-public-api.loadbalancer.server.port=8182"
 
   # Public Web (Vue frontend)
   public-web:
@@ -273,14 +273,16 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_PUBLIC_API_URL}
+        VITE_AUTH_URL: ${VITE_PUBLIC_AUTH_URL}
     container_name: rpg-public-web
     restart: unless-stopped
     ports:
       - "8180:8080"
     networks:
       - network
-    # depends_on:
-    #   - public-api  # TODO: Enable when public-api repo exists
+    depends_on:
+      public-api:
+        condition: service_healthy
     deploy:
       resources:
         limits:
