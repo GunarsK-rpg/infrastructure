@@ -176,7 +176,7 @@ services:
 
   # Database Migrations (Flyway)
   flyway:
-    image: flyway/flyway:11
+    image: flyway/flyway:12
     container_name: rpg-flyway
     restart: "no"
     command: migrate
