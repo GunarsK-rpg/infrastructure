@@ -253,9 +253,9 @@ services:
       - "traefik.enable=true"
       - "traefik.constraint-rpg=true"
       # Rate limiting middleware
-      - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.average=60"
+      - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.average=500"
       - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.period=1m"
-      - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.burst=100"
+      - "traefik.http.middlewares.rpg-public-ratelimit.ratelimit.burst=200"
       # HTTP router
       - "traefik.http.routers.rpg-public-api.rule=PathPrefix(`/api/`)"
       - "traefik.http.routers.rpg-public-api.entrypoints=web"
