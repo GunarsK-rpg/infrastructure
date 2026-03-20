@@ -2,6 +2,24 @@
 
 Docker Compose infrastructure for the Cosmere RPG Character Sheet Manager.
 
+## URLs
+
+| Environment | URL |
+| --- | --- |
+| Production | <https://rpg.gunarsk.com/> |
+| Local (HTTPS) | <https://localhost:8543/> |
+
+## Repositories
+
+| Repo | Description |
+| --- | --- |
+| [public-web](https://github.com/GunarsK-rpg/public-web) | Vue 3 frontend |
+| [public-api](https://github.com/GunarsK-rpg/public-api) | Go backend API |
+| [database](https://github.com/GunarsK-rpg/database) | PostgreSQL schema and migrations |
+| database-seeds | Seed data (private) |
+| [auth-service](https://github.com/GunarsK-portfolio/auth-service) | JWT authentication |
+| [portfolio-common](https://github.com/GunarsK-portfolio/portfolio-common) | Shared Go libraries (auth, logging, metrics) |
+
 ## Services
 
 | Service | Port | Description |
@@ -43,7 +61,7 @@ infrastructure/
 │   └── traefik/        # Traefik config and certs
 ├── scripts/
 │   └── generate-secrets.py
-├── terraform/          # AWS infrastructure (future)
+├── terraform/          # AWS infrastructure (managed separately)
 ├── .env.example        # Environment template
 ├── docker-compose.yml  # Service definitions
 └── Taskfile.yml        # Task automation
@@ -95,6 +113,6 @@ All services run on the `rpg_network` bridge network.
 
 ## Production Notes
 
+- Production runs on AWS, managed via Terraform in the [infrastructure](https://github.com/GunarsK-portfolio/infrastructure) repo
 - Production uses shared AWS Aurora (single cluster, separate databases)
 - Local development uses separate PostgreSQL instances for isolation
-- Terraform configuration in `terraform/` directory (to be implemented)
