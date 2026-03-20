@@ -17,7 +17,8 @@ Docker Compose infrastructure for the Cosmere RPG Character Sheet Manager.
 | [public-api](https://github.com/GunarsK-rpg/public-api) | Go backend API |
 | [database](https://github.com/GunarsK-rpg/database) | PostgreSQL schema and migrations |
 | database-seeds | Seed data (private) |
-| [portfolio](https://github.com/GunarsK-portfolio) | Auth service, common libraries |
+| [auth-service](https://github.com/GunarsK-portfolio/auth-service) | JWT authentication |
+| [portfolio-common](https://github.com/GunarsK-portfolio/portfolio-common) | Shared Go libraries (auth, logging, metrics) |
 
 ## Services
 
@@ -112,6 +113,6 @@ All services run on the `rpg_network` bridge network.
 
 ## Production Notes
 
-- Production runs on AWS, managed via Terraform in the [portfolio infrastructure](https://github.com/GunarsK-portfolio) repo
+- Production runs on AWS, managed via Terraform in the [infrastructure](https://github.com/GunarsK-portfolio/infrastructure) repo
 - Production uses shared AWS Aurora (single cluster, separate databases)
 - Local development uses separate PostgreSQL instances for isolation
