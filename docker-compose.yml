@@ -279,6 +279,7 @@ services:
       args:
         VITE_API_URL: ${VITE_PUBLIC_API_URL}
         VITE_AUTH_URL: ${VITE_PUBLIC_AUTH_URL}
+        VITE_FILES_API_URL: ${VITE_FILES_API_URL}
     container_name: rpg-public-web
     restart: unless-stopped
     ports:
