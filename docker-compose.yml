@@ -259,13 +259,13 @@ services:
       # HTTP router
       - "traefik.http.routers.rpg-public-api.rule=PathPrefix(`/api/`)"
       - "traefik.http.routers.rpg-public-api.entrypoints=web"
-      - "traefik.http.routers.rpg-public-api.middlewares=rpg-public-ratelimit"
+      - "traefik.http.routers.rpg-public-api.middlewares=rpg-public-ratelimit,security-headers@file"
       - "traefik.http.routers.rpg-public-api.priority=100"
       - "traefik.http.routers.rpg-public-api.service=rpg-public-api"
       # HTTPS router
       - "traefik.http.routers.rpg-public-api-secure.rule=PathPrefix(`/api/`)"
       - "traefik.http.routers.rpg-public-api-secure.entrypoints=websecure"
-      - "traefik.http.routers.rpg-public-api-secure.middlewares=rpg-public-ratelimit"
+      - "traefik.http.routers.rpg-public-api-secure.middlewares=rpg-public-ratelimit,security-headers@file"
       - "traefik.http.routers.rpg-public-api-secure.priority=100"
       - "traefik.http.routers.rpg-public-api-secure.tls=true"
       - "traefik.http.routers.rpg-public-api-secure.service=rpg-public-api"
@@ -301,10 +301,12 @@ services:
       # HTTP router
       - "traefik.http.routers.rpg-public-web.rule=PathPrefix(`/`) && !PathPrefix(`/api/`)"
       - "traefik.http.routers.rpg-public-web.entrypoints=web"
+      - "traefik.http.routers.rpg-public-web.middlewares=security-headers@file"
       - "traefik.http.routers.rpg-public-web.priority=1"
       # HTTPS router
       - "traefik.http.routers.rpg-public-web-secure.rule=PathPrefix(`/`) && !PathPrefix(`/api/`)"
       - "traefik.http.routers.rpg-public-web-secure.entrypoints=websecure"
+      - "traefik.http.routers.rpg-public-web-secure.middlewares=security-headers@file"
       - "traefik.http.routers.rpg-public-web-secure.priority=1"
       - "traefik.http.routers.rpg-public-web-secure.tls=true"
       - "traefik.http.routers.rpg-public-web-secure.service=rpg-public-web"
