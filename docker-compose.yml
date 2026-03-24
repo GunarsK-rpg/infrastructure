@@ -214,7 +214,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${POSTGRES_DB}
-      - DB_SSL_MODE=${DB_SSL_MODE}
+      - DB_SSLMODE=${DB_SSLMODE}
       - JWT_SECRET=${JWT_SECRET}
       - LOG_LEVEL=${LOG_LEVEL}
       - LOG_FORMAT=${LOG_FORMAT}
