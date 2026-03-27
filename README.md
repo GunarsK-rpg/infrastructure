@@ -27,7 +27,6 @@ Docker Compose infrastructure for the Cosmere RPG Character Sheet Manager.
 | Traefik    | 8100, 8543 | Reverse proxy with TLS       |
 | PostgreSQL | 5435       | Database                     |
 | Redis      | 6380       | Session cache                |
-| MinIO      | 9010, 9011 | S3-compatible object storage |
 | Flyway     | -          | Database migrations          |
 | public-api | 8182       | Go backend API               |
 | public-web | 8180       | Vue 3 frontend               |
@@ -56,7 +55,6 @@ task services:logs
 ```text
 infrastructure/
 ├── docker/
-│   ├── minio/          # MinIO bucket policies
 │   ├── redis/          # Redis configuration
 │   └── traefik/        # Traefik config and certs
 ├── scripts/
@@ -104,8 +102,6 @@ task services:ci        # Run CI for all repos
 | ------------- | --------- |
 | PostgreSQL    | 5435      |
 | Redis         | 6380      |
-| MinIO API     | 9010      |
-| MinIO Console | 9011      |
 
 ## Network
 
