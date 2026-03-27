@@ -60,10 +60,6 @@ def generate_env_file(infrastructure_dir, force=False):
         # Redis password
         'REDIS_PASSWORD': generate_password(32),
 
-        # MinIO credentials
-        'MINIO_ROOT_PASSWORD': generate_password(32),
-        'S3_SECRET_KEY': generate_password(48),
-
         # JWT secret
         'JWT_SECRET': generate_jwt_secret(48),
     }
@@ -77,8 +73,6 @@ def generate_env_file(infrastructure_dir, force=False):
         'cosmere_owner_dev_pass': secrets_map['FLYWAY_PASSWORD'],
         'cosmere_app_dev_pass': secrets_map['DB_PASSWORD'],
         'redis_dev_pass': secrets_map['REDIS_PASSWORD'],
-        'minioadmin_dev_pass': secrets_map['MINIO_ROOT_PASSWORD'],
-        'cosmere-files-secret-change-in-production': secrets_map['S3_SECRET_KEY'],
         'your-secret-key-change-in-production': secrets_map['JWT_SECRET'],
     }
 

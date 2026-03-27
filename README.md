@@ -4,33 +4,33 @@ Docker Compose infrastructure for the Cosmere RPG Character Sheet Manager.
 
 ## URLs
 
-| Environment | URL |
-| --- | --- |
-| Production | <https://rpg.gunarsk.com/> |
-| Local (HTTPS) | <https://localhost:8543/> |
+| Environment   | URL                        |
+| ------------- | -------------------------- |
+| Production    | <https://rpg.gunarsk.com/> |
+| Local (HTTPS) | <https://localhost:8543/>  |
 
 ## Repositories
 
-| Repo | Description |
-| --- | --- |
-| [public-web](https://github.com/GunarsK-rpg/public-web) | Vue 3 frontend |
-| [public-api](https://github.com/GunarsK-rpg/public-api) | Go backend API |
-| [database](https://github.com/GunarsK-rpg/database) | PostgreSQL schema and migrations |
-| database-seeds | Seed data (private) |
-| [auth-service](https://github.com/GunarsK-portfolio/auth-service) | JWT authentication |
+| Repo                                                                      | Description                                  |
+| ------------------------------------------------------------------------- | -------------------------------------------- |
+| [public-web](https://github.com/GunarsK-rpg/public-web)                   | Vue 3 frontend                               |
+| [public-api](https://github.com/GunarsK-rpg/public-api)                   | Go backend API                               |
+| [database](https://github.com/GunarsK-rpg/database)                       | PostgreSQL schema and migrations             |
+| database-seeds                                                            | Seed data (private)                          |
+| [auth-service](https://github.com/GunarsK-portfolio/auth-service)         | JWT authentication                           |
 | [portfolio-common](https://github.com/GunarsK-portfolio/portfolio-common) | Shared Go libraries (auth, logging, metrics) |
 
 ## Services
 
-| Service | Port | Description |
-|---------|------|-------------|
-| Traefik | 8100, 8543 | Reverse proxy with TLS |
-| PostgreSQL | 5435 | Database |
-| Redis | 6380 | Session cache |
-| MinIO | 9010, 9011 | S3-compatible object storage |
-| Flyway | - | Database migrations |
-| public-api | 8182 | Go backend API |
-| public-web | 8180 | Vue 3 frontend |
+| Service    | Port       | Description                  |
+| ---------- | ---------- | ---------------------------- |
+| Traefik    | 8100, 8543 | Reverse proxy with TLS       |
+| PostgreSQL | 5435       | Database                     |
+| Redis      | 6380       | Session cache                |
+| MinIO      | 9010, 9011 | S3-compatible object storage |
+| Flyway     | -          | Database migrations          |
+| public-api | 8182       | Go backend API               |
+| public-web | 8180       | Vue 3 frontend               |
 
 ## Quick Start
 
@@ -100,12 +100,12 @@ task services:ci        # Run CI for all repos
 
 ## Port Allocation
 
-| Resource | Host Port |
-|----------|-----------|
-| PostgreSQL | 5435 |
-| Redis | 6380 |
-| MinIO API | 9010 |
-| MinIO Console | 9011 |
+| Resource      | Host Port |
+| ------------- | --------- |
+| PostgreSQL    | 5435      |
+| Redis         | 6380      |
+| MinIO API     | 9010      |
+| MinIO Console | 9011      |
 
 ## Network
 
