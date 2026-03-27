@@ -79,7 +79,7 @@ def generate_env_file(infrastructure_dir, force=False):
         'redis_dev_pass': secrets_map['REDIS_PASSWORD'],
         'minioadmin_dev_pass': secrets_map['MINIO_ROOT_PASSWORD'],
         'cosmere-files-secret-change-in-production': secrets_map['S3_SECRET_KEY'],
-        'your-jwt-secret-change-in-production': secrets_map['JWT_SECRET'],
+        'your-secret-key-change-in-production': secrets_map['JWT_SECRET'],
     }
 
     # Validate all placeholders exist before replacement
