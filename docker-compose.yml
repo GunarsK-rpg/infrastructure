@@ -36,7 +36,8 @@ services:
       - "127.0.0.1:9003:8080"  # Traefik dashboard (localhost only)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${TRAEFIK_CERT_DIR}:/certs:ro
+      - ${TRAEFIK_CERT_DIR}/${TLS_CERT_FILE}:/certs/cert.pem:ro
+      - ${TRAEFIK_CERT_DIR}/${TLS_KEY_FILE}:/certs/key.pem:ro
       - ./docker/traefik/dynamic.yml:/config/dynamic.yml:ro
     networks:
       - network
@@ -60,7 +61,7 @@ services:
       - "-c"
       - "shared_preload_libraries=pg_stat_statements,pg_cron"
       - "-c"
-      - "cron.database_name=cosmere_rpg"
+      - "cron.database_name=${POSTGRES_DB}"
     environment:
       # Must match cron.database_name in command above
       POSTGRES_DB: ${POSTGRES_DB}
@@ -229,15 +230,22 @@ services:
         VITE_API_URL: ${VITE_PUBLIC_API_URL}
         VITE_AUTH_URL: ${VITE_PUBLIC_AUTH_URL}
         VITE_FILES_API_URL: ${VITE_FILES_API_URL}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN}
     container_name: rpg-public-web
     restart: unless-stopped
     ports:
-      - "8180:8080"
+      - "127.0.0.1:${PUBLIC_WEB_PORT}:8080"
     networks:
       - network
     depends_on:
       public-api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     deploy:
       resources:
         limits:
