@@ -112,7 +112,7 @@ services:
     networks:
       - network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -128,6 +128,10 @@ services:
     image: flyway/flyway:12
     container_name: rpg-flyway
     restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     command: migrate
     volumes:
       - ../database/migrations:/flyway/sql
@@ -231,13 +235,23 @@ services:
         VITE_FILES_API_URL: ${VITE_FILES_API_URL}
     container_name: rpg-public-web
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     ports:
-      - "8180:8080"
+      - "127.0.0.1:8180:8080"
     networks:
       - network
     depends_on:
       public-api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
