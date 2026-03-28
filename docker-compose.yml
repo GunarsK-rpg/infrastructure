@@ -35,10 +35,26 @@ services:
       - "8543:443"
       - "127.0.0.1:9003:8080"  # Traefik dashboard (localhost only)
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${TRAEFIK_CERT_DIR}/${TLS_CERT_FILE}:/certs/cert.pem:ro
-      - ${TRAEFIK_CERT_DIR}/${TLS_KEY_FILE}:/certs/key.pem:ro
-      - ./docker/traefik/dynamic.yml:/config/dynamic.yml:ro
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+      - type: bind
+        source: ${TRAEFIK_CERT_DIR}/${TLS_CERT_FILE}
+        target: /certs/cert.pem
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${TRAEFIK_CERT_DIR}/${TLS_KEY_FILE}
+        target: /certs/key.pem
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./docker/traefik/dynamic.yml
+        target: /config/dynamic.yml
+        read_only: true
     networks:
       - network
     depends_on:
