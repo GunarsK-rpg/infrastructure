@@ -149,7 +149,18 @@ services:
     volumes:
       - ../database/migrations:/flyway/sql
       - ../database/seeds:/flyway/seeds
-      - ../database-seeds:/flyway/private-seeds
+      - type: bind
+        source: ../database-seeds/global
+        target: /flyway/seeds-global
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../database-seeds/stormlight
+        target: /flyway/seeds-stormlight
+        read_only: true
+        bind:
+          create_host_path: false
     environment:
       - FLYWAY_URL=jdbc:postgresql://postgres:${DB_PORT}/${POSTGRES_DB}
       - FLYWAY_USER=${FLYWAY_USER}
